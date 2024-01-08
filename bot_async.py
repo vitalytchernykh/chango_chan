@@ -21,27 +21,27 @@ headers = {"Authorization": "Bearer {}".format(os.environ['HF_TOKEN'])
 }
 
 ''' create new tg bot object
-   '''
+  '''
 bot = Bot(token = os.environ['CC_TG_TOKEN'])
 dp = Dispatcher()
 
-''' command handler - start
-   '''
 @dp.message(Command('start'))
 async def command_handler(message: types.Message):
-    await message.answer('Привет! Как поживаешь?')
+  ''' command handler - start
+    '''
+  await message.answer('Привет! Как поживаешь?')
 
-''' text handler
-   '''
 @dp.message()
 async def text_handler(message: types.Message):
+  ''' text handler
+     '''
   # remove lead slash
   user_text = message.text[1:]
   async with aiohttp.ClientSession() as session:
     response = await session.post(url = API_URL, headers = headers, json = user_text)
   logging.info('{} {} {} {}'.format(response.method, response.url, response.status, response.reason))
   try:
-    response_data = await asyncio.wait_for(response.json(), timeout = 10)
+    response_data = await asyncio.wait_for(response.json(), timeout = 20)
     generated_text = response_data[0]['generated_text']
     logging.info('payload:\n {}'.format(generated_text))
     # try get second line
@@ -49,18 +49,18 @@ async def text_handler(message: types.Message):
       generated_text = generated_text.split('\n')[1][2:]
     await message.reply(generated_text)
   except asyncio.TimeoutError:
-    logging.info('model API request error: {}'.format(response))
-    await message.answer('Таймаут, давай еще раз\n{} {}'.format(response.status, response.reason))
+    logging.info('model API request error:\n{}'.format(response))
+    await message.reply('Таймаут, давай еще раз\n{} {}'.format(response.status, response.reason))
   except KeyError:
     logging.error('payload parsing error: {}'.format(response))
-    await message.answer('Нету ответа, давай еще раз\n{} {}'.format(response.status, response.reason))
+    await message.reply('Нету ответа, давай еще раз\n{} {}'.format(response.status, response.reason))
 
-''' polling events
-   '''
 async def main():
+  ''' polling events
+     '''
   await dp.start_polling(bot)
 
-''' start tg bot app
-   '''
 if __name__ == "__main__":
+  ''' start tg bot app
+    '''
   asyncio.run(main())
