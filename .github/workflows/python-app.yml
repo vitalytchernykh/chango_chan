@@ -39,4 +39,4 @@ jobs:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         CC_TG_TOKEN: ${{ secrets.CC_TG_TOKEN }}
       run: |
-        python main.py
+        python bot_async.py
