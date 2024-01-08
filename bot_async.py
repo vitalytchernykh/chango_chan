@@ -40,17 +40,20 @@ async def text_handler(message: types.Message):
   async with aiohttp.ClientSession() as session:
     response = await session.post(url = API_URL, headers = headers, json = user_text)
   logging.info('{} {} {} {}'.format(response.method, response.url, response.status, response.reason))
-  generated_text = await response.json()
-  logging.info('payload {}'.format(generated_text))
   try:
-    generated_text = generated_text[0]['generated_text']
+    response_data = await asyncio.wait_for(response.json(), timeout = 10)
+    generated_text = response_data[0]['generated_text']
+    logging.info('payload:\n {}'.format(generated_text))
+    # try get second line
+    if '\n' in generated_text:
+      generated_text = generated_text.split('\n')[1][2:]
+    await message.reply(generated_text)
+  except asyncio.TimeoutError:
+    logging.info('model API request error: {}'.format(response))
+    await message.answer('Таймаут, давай еще раз\n{} {}'.format(response.status, response.reason))
   except KeyError:
-    generated_text = 'Что-то пошло не так, апишка не ответила:\n - модель не успела загрузиться, попробуй через 10сек\n - токен протух'
-    logging.error('API error: {}'.format(response))
-  # get second line
-  if hf_model == 'Den4ikAI/rugpt3_2ch':
-    generated_text = generated_text.split('\n')[1][2:]  
-  await message.reply(generated_text)
+    logging.error('payload parsing error: {}'.format(response))
+    await message.answer('Нету ответа, давай еще раз\n{} {}'.format(response.status, response.reason))
 
 ''' polling events
    '''
