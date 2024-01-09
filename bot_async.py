@@ -1,66 +1,70 @@
 import os
-import logging
 import asyncio
 import aiohttp
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
+from aiologger.loggers.json import JsonLogger
 
-logging.basicConfig(level=logging.INFO)
-
-''' define huggingface.co model parameters
-and account token data '''
-#hf_model = "ai-forever/rugpt3large_based_on_gpt2"
-#hf_model = 'TheBakerCat/2chan_ruGPT3_small'
-hf_model = 'Den4ikAI/rugpt3_2ch'
-#hf_model = 'BlackSamorez/rudialogpt3_medium_based_on_gpt2_2ch'
-
-logging.info('huggingface.co model: {}'.format(hf_model))
-
-API_URL = "https://api-inference.huggingface.co/models/{}".format(hf_model)
-headers = {"Authorization": "Bearer {}".format(os.environ['HF_TOKEN'])
-}
-
-''' create new tg bot object
-  '''
-bot = Bot(token = os.environ['CC_TG_TOKEN'])
 dp = Dispatcher()
 
 @dp.message(Command('start'))
 async def command_handler(message: types.Message):
-  ''' command handler - start
-    '''
   await message.answer('Привет! Как поживаешь?')
 
 @dp.message()
 async def text_handler(message: types.Message):
-  ''' text handler
-     '''
   # remove lead slash
   user_text = message.text[1:]
-  async with aiohttp.ClientSession() as session:
-    response = await session.post(url = API_URL, headers = headers, json = user_text)
-  logging.info('{} {} {} {}'.format(response.method, response.url, response.status, response.reason))
-  try:
-    response_data = await asyncio.wait_for(response.json(), timeout = 20)
-    generated_text = response_data[0]['generated_text']
-    logging.info('payload:\n {}'.format(generated_text))
-    # try get second line
-    if '\n' in generated_text:
-      generated_text = generated_text.split('\n')[1][2:]
-    await message.reply(generated_text)
-  except asyncio.TimeoutError:
-    logging.info('model API request error:\n{}'.format(response))
-    await message.reply('Таймаут, давай еще раз\n{} {}'.format(response.status, response.reason))
-  except KeyError:
-    logging.error('payload parsing error: {}'.format(response))
-    await message.reply('Нету ответа, давай еще раз\n{} {}'.format(response.status, response.reason))
+  async with app_content['hf_session'].post(url = app_content['HF_API_URL'],
+                                         headers = app_content['hf_headers'],
+                                         json = user_text) as response:
+    app_content['logger'].info('hf model API request:\n{} {} {} {}'
+                               .format(
+                                 response.method,
+                                 response.url,
+                                 response.status,
+                                 response.reason))
+    try:
+      response_data = await response.json()
+      generated_text = response_data[0]['generated_text']
+      app_content['logger'].info('hf model API request payload:\n {}'
+                                 .format(generated_text))
+      # try get second line
+      if '\n' in generated_text:
+        generated_text = generated_text.split('\n')[1][2:]
+      await message.reply(generated_text)
+    except KeyError:
+      await message.reply('Нету ответа, давай еще раз\n{} {}'
+                          .format(response.status, response.reason))
+      app_content['logger'].error('payload parsing error: {}'
+                                  .format(response))
+    except asyncio.TimeoutError:
+      await message.reply('Таймаут, давай еще раз\n{} {}'
+                          .format(response.status, response.reason))
+      app_content['logger'].info('hf model API request error:\n{}'
+                                 .format(response))
 
 async def main():
-  ''' polling events
-     '''
-  await dp.start_polling(bot)
+  ''' init content manager
+     polling events'''
+  # one session for all requests
+  app_content['hf_session'] = aiohttp.ClientSession()
+  app_content['hf_model_name'] = 'Den4ikAI/rugpt3_2ch'
+  app_content['HF_API_URL'] = 'https://api-inference.huggingface.co/models/{}'.format(
+                                app_content['hf_model_name'])
+  app_content['hf_headers'] = {'Authorization': 'Bearer {}'
+                               .format(os.environ['HF_TOKEN'])}
+  app_content['cc_tg_bot'] = Bot(token = os.environ['CC_TG_TOKEN'])
+  app_content['logger'] = JsonLogger.with_default_handlers(
+      level='DEBUG',
+      serializer_kwargs={'ensure_ascii': False},)
+  
+  await dp.start_polling(app_content['cc_tg_bot'])
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   ''' start tg bot app
     '''
-  asyncio.run(main())
+app_content = {}
+asyncio.run(main())
+# close session on exit, please-please!
+app_content['hf_session'].close()
