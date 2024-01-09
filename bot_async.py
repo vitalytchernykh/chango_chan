@@ -27,7 +27,8 @@ async def text_handler(message: types.Message):
       json = user_text) as response:
     # log event
     await app_content['cc-tg-bot-logger'].info(
-        'hf model API request:\n{} {} {} {}'.format(
+        '{} model API request:{} {} {} {}'.format(
+            app_content['hf_model_name'],
             response.method,
             response.url,
             response.status,
@@ -37,7 +38,8 @@ async def text_handler(message: types.Message):
       generated_text = response_data[0]['generated_text']
       # log event
       await app_content['cc-tg-bot-logger'].info(
-          'hf model API response payload:\n {}'.format(
+          '{} model API response payload:{}'.format(
+              app_content['hf_model_name'],
               generated_text))
       # try get response payload second line
       if '\n' in generated_text:
@@ -49,8 +51,9 @@ async def text_handler(message: types.Message):
               response.status,
               response.reason))
       # log event
-      await app_content['logger'].error(
-          'hf model API payload parsing error: {}'.format(
+      await app_content['cc-tg-bot-logger'].error(
+          '{} model API payload parsing error:{}'.format(
+            app_content['hf_model_name'],
             response))
     except asyncio.TimeoutError:
       await message.reply(
@@ -58,8 +61,9 @@ async def text_handler(message: types.Message):
               response.status,
               response.reason))
       # log event
-      await app_content['logger'].info(
-          'hf model API request error:\n{}'.format(
+      await app_content['cc-tg-bot-logger'].info(
+          '{} model API request timeout:{}'.format(
+              app_content['hf_model_name'],
               response))
 
 async def main():
@@ -75,14 +79,15 @@ async def main():
   app_content['cc_tg_bot'] = Bot(token = environ['CC_TG_TOKEN'])
   app_content['cc-tg-bot-logger'] = JsonLogger.with_default_handlers(
       name='cc-tg-bot-logger',
-      level = INFO)
+      level = INFO,
+      serializer_kwargs={'ensure_ascii': False},)
   
   await dp.start_polling(app_content['cc_tg_bot'])
+  # close huggingface.co session on exit, please-please!
+  await app_content['hf_session'].close()
 
 if __name__ == '__main__':
   ''' define content manager
   start tg bot app '''
 app_content = {}
 asyncio.run(main())
-# close huggingface.co session on exit, please-please!
-app_content['hf_session'].close()
