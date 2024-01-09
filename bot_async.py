@@ -15,18 +15,21 @@ async def command_handler(message: types.Message):
 async def text_handler(message: types.Message):
   # remove lead slash
   user_text = message.text[1:]
-  async with app_content['hf_session'].post(url = app_content['HF_API_URL'],
-                                         headers = app_content['hf_headers'],
-                                         json = user_text) as response:
-    app_content['logger'].info('hf model API request:\n{} {} {} {}'
-                               .format(
-                                 response.method,
-                                 response.url,
-                                 response.status,
-                                 response.reason))
+  # 
+  async with app_content['hf_session'].post(
+    url = app_content['HF_API_URL'],
+    headers = app_content['hf_headers'],
+    json = user_text) as response:
+    # log event
+    app_content['logger'].info('hf model API request:\n{} {} {} {}'.format(
+      response.method,
+      response.url,
+      response.status,
+      response.reason))
     try:
       response_data = await response.json()
       generated_text = response_data[0]['generated_text']
+      # log event
       app_content['logger'].info('hf model API request payload:\n {}'
                                  .format(generated_text))
       # try get second line
@@ -36,11 +39,13 @@ async def text_handler(message: types.Message):
     except KeyError:
       await message.reply('Нету ответа, давай еще раз\n{} {}'
                           .format(response.status, response.reason))
+      # log event
       app_content['logger'].error('payload parsing error: {}'
                                   .format(response))
     except asyncio.TimeoutError:
       await message.reply('Таймаут, давай еще раз\n{} {}'
                           .format(response.status, response.reason))
+      # log event
       app_content['logger'].info('hf model API request error:\n{}'
                                  .format(response))
 
