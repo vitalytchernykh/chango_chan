@@ -21,8 +21,9 @@ async def command_handler(message: types.Message):
 async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
-  # remove user question string lead slash
-  user_text = message.text[1:]
+  # remove command text
+  match = re.match(tg_bot_msg_pattern , message.text)
+  user_text = match.group(1)
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
