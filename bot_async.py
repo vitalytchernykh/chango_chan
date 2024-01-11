@@ -3,8 +3,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiohttp import ClientSession
 from os import environ
-from aiologger.loggers.json import JsonLogger
-from logging import INFO, DEBUG
+import re
 import modules.chatBot
 
 dp = Dispatcher()
@@ -21,13 +20,14 @@ async def command_handler(message: types.Message):
 async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
-  # remove command text
-  match = re.match(tg_bot_msg_pattern , message.text)
+  # remove command text from user message
+  match = re.match(chat_bot.tg_bot_msg_pattern, message.text)
   user_text = match.group(1)
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
                                       json=user_text) as response:
+    assert response.status == 200
     # log event
     await chat_bot.tg_bot_logger.info(
         '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
@@ -64,8 +64,10 @@ async def text_handler(message: types.Message):
 
 async def main():
   ''' init chat bot object
-  polling events '''
-  # one session for application, handle all huggingface.co requests
+  handle huggingface.co requests (https://docs.aiohttp.org/en/stable/client_reference.html):
+    - it is suggested you use a single session for the lifetime of your application to benefit from connection pooling
+    - the client session supports the context manager protocol for self closing
+  polling bot object events '''
   async with ClientSession() as chat_bot.hf_session:
     chat_bot.hf_model_name = 'Den4ikAI/rugpt3_2ch'
     chat_bot.HF_API_URL = 'https://api-inference.huggingface.co/models/{}'.format(
