@@ -1,9 +1,10 @@
 import asyncio
+from os import environ
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiohttp import ClientSession
-from os import environ
-import re
+
 import modules.chatBot
 
 dp = Dispatcher()
@@ -20,46 +21,49 @@ async def command_handler(message: types.Message):
 async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
-  # remove command text from user message
-  match = re.match(chat_bot.tg_bot_msg_pattern, message.text)
-  user_text = match.group(1)
+  # user message lead slash remove
+  user_text = message.text[1:]
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
                                       json=user_text) as response:
-    assert response.status == 200
-    # log event
-    await chat_bot.tg_bot_logger.info(
-        '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
-                                                  response.method,
-                                                  response.url,
-                                                  response.status,
-                                                  response.reason))
     try:
-      response_data = await response.json()
-      generated_text = response_data[0]['generated_text']
+      assert response.status == 200
+      #raise AssertionError('test except clause')
       # log event
       await chat_bot.tg_bot_logger.info(
-          '{} model API response payload:{}'.format(chat_bot.hf_model_name,
-                                                    generated_text))
-      # try get response payload second line
-      if '\n' in generated_text:
-        generated_text = generated_text.split('\n')[1][2:]
-      await message.reply(generated_text)
-    except KeyError:
-      await message.reply('Нету ответа, давай еще раз\n{} {}'.format(
-          response.status, response.reason))
+          '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
+                                                    response.method,
+                                                    response.url,
+                                                    response.status,
+                                                    response.reason))
+    except AssertionError as error:
+      if response.status == 503:
+        await message.reply(
+            'Модель не успела загрузиться, попробуй через 5сек:\n{} {}'.format(
+                response.status, response.reason))
+      else:
+        await message.reply('Ошибка обработки запроса:\n{} {}'.format(
+            response.status, response.reason))
       # log event
       await chat_bot.tg_bot_logger.error(
-          '{} model API payload parsing error:{}'.format(
-              chat_bot.hf_model_name, response))
-    except asyncio.TimeoutError:
-      await message.reply('Таймаут, давай еще раз\n{} {}'.format(
-          response.status, response.reason))
-      # log event
-      await chat_bot.tg_bot_logger.info(
-          '{} model API request timeout:{}'.format(chat_bot.hf_model_name,
-                                                   response))
+          '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
+                                                    response.method,
+                                                    response.url,
+                                                    response.status,
+                                                    response.reason))
+      # raise error
+      raise
+    response_data = await response.json()
+    generated_text = response_data[0]['generated_text']
+    # log event
+    await chat_bot.tg_bot_logger.info(
+        '{} model API response payload:{}'.format(chat_bot.hf_model_name,
+                                                  generated_text))
+    # try get response payload second line
+    if '\n' in generated_text:
+      generated_text = generated_text.split('\n')[1][2:]
+    await message.reply(generated_text)
 
 
 async def main():
