@@ -9,13 +9,15 @@ class ChatBot:
   init default values '''
 
   tg_bot: Bot
+  tg_bot_msg_pattern: str
   tg_bot_logger: JsonLogger
-  hf_session: ClientSession
   hf_model_name: str
+  hf_session: ClientSession
   HF_API_URL: str
   hf_headers: dict
 
   def __init__(self):
+    tg_bot_msg_pattern = '^\/[a-zA-Z\d_]* (.*)$'
     self.tg_bot_logger = JsonLogger.with_default_handlers(
         name='app-logger',
         level=INFO,
