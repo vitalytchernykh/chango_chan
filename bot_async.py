@@ -32,34 +32,28 @@ async def text_handler(message: types.Message):
       #raise AssertionError('test except clause')
       # log event
       await chat_bot.tg_bot_logger.info(
-          '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
-                                                    response.method,
-                                                    response.url,
-                                                    response.status,
-                                                    response.reason))
+          f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason}'
+      )
     except AssertionError as error:
       if response.status == 503:
         await message.reply(
-            'Модель не успела загрузиться, попробуй через 5сек:\n{} {}'.format(
-                response.status, response.reason))
+            f'Модель не успела загрузиться, попробуй через 5сек:\n{response.status} {response.reason}'
+        )
       else:
         await message.reply('Ошибка обработки запроса:\n{} {}'.format(
             response.status, response.reason))
       # log event
       await chat_bot.tg_bot_logger.error(
-          '{} model API request:{} {} {} {}'.format(chat_bot.hf_model_name,
-                                                    response.method,
-                                                    response.url,
-                                                    response.status,
-                                                    response.reason))
+          f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason}'
+      )
       # raise error
       raise
     response_data = await response.json()
     generated_text = response_data[0]['generated_text']
     # log event
     await chat_bot.tg_bot_logger.info(
-        '{} model API response payload:{}'.format(chat_bot.hf_model_name,
-                                                  generated_text))
+        f'{chat_bot.hf_model_name} model API response payload:{generated_text}'
+    )
     # try get response payload second line
     if '\n' in generated_text:
       generated_text = generated_text.split('\n')[1][2:]
