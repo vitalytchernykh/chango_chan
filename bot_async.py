@@ -25,6 +25,9 @@ async def text_handler(message: types.Message):
   json_data = {
     "inputs": message.text[1:]
   }
+  await chat_bot.tg_bot_logger.info(
+    f'json data:{json_data}'
+
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
