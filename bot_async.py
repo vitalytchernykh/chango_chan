@@ -1,3 +1,4 @@
+import json
 import asyncio
 from os import environ
 
@@ -22,7 +23,7 @@ async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
   # user message json payload, lead slash remove
-  user_text = '{"inputs": "' + message.text[1:] + '"}'
+  user_text = json.loads('{"inputs": "' + message.text[1:] + '"}')
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
