@@ -71,6 +71,7 @@ async def main():
     chat_bot.HF_API_URL = 'https://api-inference.huggingface.co/models/{}'.format(
         chat_bot.hf_model_name)
     chat_bot.hf_headers = {
+        'Content-Type': 'application/json',
         'Authorization': 'Bearer {}'.format(environ['HF_TOKEN'])
     }
     chat_bot.tg_bot = Bot(token=environ['CC_TG_TOKEN'])
