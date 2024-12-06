@@ -7,6 +7,7 @@ from aiohttp import ClientSession
 
 import modules.chatBot
 
+
 dp = Dispatcher()
 
 
@@ -14,19 +15,23 @@ dp = Dispatcher()
 async def command_handler(message: types.Message):
   ''' handle bot /start command
   '''
-  await message.answer('Привет! Как поживаешь?')
+  await message.answer('Эммм?')
+
+@dp.message(Command('help'))
+async def command_handler(message: types.Message):
+  ''' handle bot /help command
+  '''
+  await message.answer('Ваш вопрос очень важен для нас. В данный момент все операторы заняты. Оставайтесь на линии. Ром-пом-пом!')
 
 
 @dp.message()
 async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
-  # user message json payload, lead slash remove
+  # create user message json payload
   json_data = {
     "inputs": message.text
   }
-  #await chat_bot.tg_bot_logger.info(
-  #  f'json data:{json_data}')
 
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
@@ -40,25 +45,27 @@ async def text_handler(message: types.Message):
           f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason}'
       )
     except AssertionError as error:
-      if response.status == 503:
-        await message.reply(
-            f'Модель не успела загрузиться, попробуй через 5сек:\n{response.status} {response.reason}'
-        )
-      else:
-        await message.reply('Ошибка обработки запроса:\n{} {}'.format(
-            response.status, response.reason, response.text))
+      #if response.status == 503:
+      #  await message.reply(
+      #      f'Модель не успела загрузиться, попробуй через 5сек:\n{response.status} {response.reason}'
+      #  )
+      #else:
+      #  await message.reply('Ошибка обработки запроса:\n{} {}'.format(
+      #      response.status, response.reason, response.text))
       # log event
       await chat_bot.tg_bot_logger.error(
           f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason} {response.text}'
       )
       # raise error
       raise
+
     response_data = await response.json()
     generated_text = response_data[0]['generated_text']
     # log event
     await chat_bot.tg_bot_logger.info(
         f'{chat_bot.hf_model_name} model API response payload:{generated_text}'
     )
+
     # try get response payload second line
     if '\n' in generated_text:
       generated_text = generated_text.split('\n')[1][2:]
