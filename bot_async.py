@@ -1,4 +1,3 @@
-import json
 import asyncio
 from os import environ
 
@@ -23,11 +22,14 @@ async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
   # user message json payload, lead slash remove
+  json_data = {
+    "inputs": message.text[1:]
+  }
   user_text = json.loads('{"inputs": "' + message.text[1:] + '"}')
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
-                                      json=user_text) as response:
+                                      json=json_data) as response:
     try:
       assert response.status == 200
       #raise AssertionError('test except clause')
@@ -42,10 +44,10 @@ async def text_handler(message: types.Message):
         )
       else:
         await message.reply('Ошибка обработки запроса:\n{} {}'.format(
-            response.status, response.reason))
+            response.status, response.reason, response.text))
       # log event
       await chat_bot.tg_bot_logger.error(
-          f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason}'
+          f'{chat_bot.hf_model_name} model API request:{response.method} {response.url} {response.status} {response.reason} {response.text}'
       )
       # raise error
       raise
@@ -72,7 +74,6 @@ async def main():
     chat_bot.HF_API_URL = 'https://api-inference.huggingface.co/models/{}'.format(
         chat_bot.hf_model_name)
     chat_bot.hf_headers = {
-        'Content-Type': 'application/json',
         'Authorization': 'Bearer {}'.format(environ['HF_TOKEN'])
     }
     chat_bot.tg_bot = Bot(token=environ['CC_TG_TOKEN'])
