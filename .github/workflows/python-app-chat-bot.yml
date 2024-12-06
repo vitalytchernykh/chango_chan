@@ -5,7 +5,7 @@ name: Python application chat bot
 
 on:
   schedule:
-    - cron: '* */5 * * *'
+    - cron: '32 */5 * * *'
   #push:
   #  branches: [ "main" ]
   #pull_request:
