@@ -21,8 +21,8 @@ async def command_handler(message: types.Message):
 async def text_handler(message: types.Message):
   ''' handle chat text message
   huggingface.co model backend request '''
-  # user message lead slash remove
-  user_text = message.text[1:]
+  # user message json payload, lead slash remove
+  user_text = '{"inputs": "' + message.text[1:] + '",}'
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
                                       headers=chat_bot.hf_headers,
