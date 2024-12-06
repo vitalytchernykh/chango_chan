@@ -23,10 +23,10 @@ async def text_handler(message: types.Message):
   huggingface.co model backend request '''
   # user message json payload, lead slash remove
   json_data = {
-    "inputs": message.text[1:]
+    "inputs": message.text
   }
-  await chat_bot.tg_bot_logger.info(
-    f'json data:{json_data}')
+  #await chat_bot.tg_bot_logger.info(
+  #  f'json data:{json_data}')
 
   # huggingface.co model backend request
   async with chat_bot.hf_session.post(url=chat_bot.HF_API_URL,
