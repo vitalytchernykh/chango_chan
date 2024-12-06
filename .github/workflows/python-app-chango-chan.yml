@@ -11,9 +11,9 @@ on:
   schedule:
     - cron: '* * * * *'
 
-#concurrency:
-#  group: ${{ github.ref }}
-#  cancel-in-progress: true
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
